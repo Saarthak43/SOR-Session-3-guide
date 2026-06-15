@@ -62,10 +62,9 @@ ROS 2 Jazzy and Gazebo Harmonic work well together because both are long-term su
 ## Installation
 
 ### 5.1 Install Gazebo Harmonic
-
+Follow the official guide
 ```bash
-# Follow the official install guide:
-# https://gazebosim.org/docs/harmonic/install_ubuntu/
+https://gazebosim.org/docs/harmonic/install_ubuntu/
 ```
 
 Verify the installation:
@@ -75,6 +74,9 @@ gz sim shapes.sdf
 ```
 
 > If Gazebo opens with the shapes world, the installation is working.
+
+<img width="2031" height="1195" alt="gazebo" src="https://github.com/user-attachments/assets/1e788ad3-fee6-4607-b690-bd189be53236" />
+
 
 ### 5.2 Install ROS-Gazebo Tools
 
