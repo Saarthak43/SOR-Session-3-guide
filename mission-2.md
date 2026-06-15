@@ -96,3 +96,108 @@ For keyboard control:
 ```bash
 sudo apt install ros-jazzy-teleop-twist-keyboard
 ```
+
+## Understanding the Gazebo GUI
+
+Run the basic example first:
+
+```bash
+gz sim shapes.sdf
+```
+
+<img width="2031" height="1194" alt="gazebo-1" src="https://github.com/user-attachments/assets/608d5078-3c8b-4789-91de-e7057f6a45c9" />
+
+
+| No. | GUI Element | What it does |
+|---|---|---|
+| 1 | **Play/Pause** | Starts or pauses simulation. Use `-r` to auto-start Gazebo. |
+| 2 | **Real Time Factor** | Should stay near 100%. Below 60% means the simulation is struggling. |
+| 3 | **Shape/Light Tools** | Add and transform basic geometry and lights. |
+| 4 | **Model Hierarchy** | Shows all models, links, collisions, and visuals in the world. |
+| 5 | **Model Inspector** | Shows detailed information about the selected model. |
+| 6 | **Plugin Browser** | Opens tools like Resource Spawner, Lidar Visualizer, and Image Display. |
+
+## Download the Offline Model Library
+
+After downloading and unzipping the model library to home of your container/ubuntu, export it:
+
+```bash
+https://drive.google.com/file/d/1tcfoLFReEW1XNHPUAeLpIz2iZXqQBvo_/view
+```
+
+```bash
+export GZ_SIM_RESOURCE_PATH=~/gazebo_models
+```
+ 
+Make it permanent:
+
+```bash
+echo 'export GZ_SIM_RESOURCE_PATH=~/gazebo_models' >> ~/.bashrc
+source ~/.bashrc
+```
+
+## Cloning This Repo
+
+From now on, every session has its own repository. Clone the starter branch inside your ROS 2 workspace:
+
+```bash
+mkdir -p ~/sor_ws/src
+cd ~/sor_ws/src
+git clone -b starter https://github.com/Saarthak43/sor-ros-session1.git
+cd ~/sor_ws
+colcon build --packages-select erc_sor_ros_session1
+source install/setup.bash
+```
+
+Expected package structure:
+
+```text
+erc_sor_ros_session1/
+├── launch/
+│   ├── check_urdf.launch.py
+│   ├── spawn_robot.launch.py
+│   └── world.launch.py
+├── rviz/
+│   ├── rviz.rviz
+│   └── urdf.rviz
+├── urdf/
+│   ├── my_robot.xacro
+│   ├── sor_bot.gazebo
+│   └── materials.xacro
+├── worlds/
+│   └── world.sdf
+├── CMakeLists.txt
+└── package.xml
+```
+
+Make sure these folders are installed by `CMakeLists.txt`:
+
+```cmake
+install(
+  DIRECTORY launch urdf worlds rviz
+  DESTINATION share/${PROJECT_NAME}
+)
+```
+
+## Opening the Pre-Built World
+
+Launch only the world first:
+
+```bash
+ros2 launch erc_sor_ros_session1 world.launch.py
+```
+
+> Gazebo gives us physics, collisions, and world dynamics. But right now, there is still no robot inside the world.
+
+## URDF — Universal Robot Description Format
+
+### 10.1 What is URDF?
+
+URDF means **Universal Robot Description Format**. It is an XML format used to describe the robot's physical structure.
+
+| URDF Part | Meaning |
+|---|---|
+| **Links** | Physical components like body, wheels, sensors |
+| **Joints** | Connections between links |
+
+
