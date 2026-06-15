@@ -779,4 +779,79 @@ In RViz: Global Options → Fixed Frame → change base_link to base_footprint.
 <img width="2032" height="1124" alt="spawn" src="https://github.com/user-attachments/assets/5d18614a-404e-48e1-8ba1-a79884260169" />
 
 
-## We 
+## Diff Drive plugin 
+
+The Gazebo plugin is in one hand responsible for calculating the wheel speeds from the control signal. In the other hand, it also implements inverse kinematics, the robot's odometry is calculated from the integral of the wheels speeds and the wheel distance.
+
+Let's create a sor_bot.gazebo file in the URDF folder:
+```bash
+<?xml version="1.0"?>
+<robot>
+  <gazebo>
+    <plugin
+        filename="gz-sim-diff-drive-system"
+        name="gz::sim::systems::DiffDrive">
+        <!-- Topic for the command input -->
+        <topic>/cmd_vel</topic>
+
+        <!-- Wheel joints -->
+        <left_joint>left_wheel_joint</left_joint>
+        <right_joint>right_wheel_joint</right_joint>
+
+        <!-- Wheel parameters -->
+        <wheel_separation>0.3</wheel_separation>
+        <wheel_radius>0.1</wheel_radius>
+
+        <!-- Control gains and limits (optional) -->
+        <max_velocity>3.0</max_velocity>
+        <max_linear_acceleration>1</max_linear_acceleration>
+        <min_linear_acceleration>-1</min_linear_acceleration>
+        <max_angular_acceleration>2</max_angular_acceleration>
+        <min_angular_acceleration>-2</min_angular_acceleration>
+        <max_linear_velocity>0.5</max_linear_velocity>
+        <min_linear_velocity>-0.5</min_linear_velocity>
+        <max_angular_velocity>1</max_angular_velocity>
+        <min_angular_velocity>-1</min_angular_velocity>
+        
+        <!-- Other parameters (optional) -->
+        <odom_topic>odom</odom_topic>
+        <tf_topic>tf</tf_topic>
+        <frame_id>odom</frame_id>
+        <child_frame_id>base_footprint</child_frame_id>
+        <odom_publish_frequency>30</odom_publish_frequency>
+    </plugin>
+
+    <plugin
+        filename="gz-sim-joint-state-publisher-system"
+        name="gz::sim::systems::JointStatePublisher">
+        <topic>joint_states</topic>
+        <joint_name>left_wheel_joint</joint_name>
+        <joint_name>right_wheel_joint</joint_name>
+    </plugin>
+  </gazebo>
+</robot>
+```
+The gz-sim-diff-drive-system plugin is handling the differential drive kinematics, and we will use another plugin gz-sim-joint-state-publisher-system to publish joint states from Gazebo to ROS2.
+
+Let's include this new file in our robot's URDF. In the same way how we included the colors, let's add it to the top of our URDF within the <robot> tag.
+
+  <!-- STEP 5 - Gazebo plugin -->
+  ```bash
+  <xacro:include filename="$(find erc_sor_ros_session1)/urdf/sor_bot.gazebo"/>
+  ```
+Rebuild the workspace and let's try it:
+ ```bash
+ros2 launch bme_gazebo_basics spawn_robot.launch.py
+  ```
+We see that odometry is still not published for RViz, but at least in Gazebo we can already drive our robot with the teleop plugin:
+
+<img width="2033" height="1123" alt="gazebo-5 (1)" src="https://github.com/user-attachments/assets/ae9a413a-97e8-4efc-8338-6444842b4573" />
+
+## TIME FOR ASSIGNMENT !! 
+
+We have a bot inside gazebo which can use the the teleop key from plugin browser which helps you drive around .
+### YOUR TASK?
+
+This repo didnt account for the carter wheels and creation of a teleop node - which helps us drive the bot from another terminal 
+
+solve these two issues and screen record the video clearly showing the carter wheels and driving it arounf the teleop node
