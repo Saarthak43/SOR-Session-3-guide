@@ -187,6 +187,8 @@ Launch only the world first:
 ros2 launch erc_sor_ros_session1 world.launch.py
 ```
 
+<img width="2031" height="1122" alt="gazebo-3" src="https://github.com/user-attachments/assets/d773c951-6e10-4658-aa51-32624c2b829a" />
+
 > Gazebo gives us physics, collisions, and world dynamics. But right now, there is still no robot inside the world.
 
 ## URDF — Universal Robot Description Format
@@ -200,4 +202,180 @@ URDF means **Universal Robot Description Format**. It is an XML format used to d
 | **Links** | Physical components like body, wheels, sensors |
 | **Joints** | Connections between links |
 
+## Create a basic design in URDF 
 
+Adding base link , wheels , corresponding joints and inertia to our URDF file , refer to the slides to see exactly how to navigate and update the .xacro folder 
+ ( extension should be .xacro ) 
+```bash
+<?xml version='1.0'?>
+
+<robot name="my_robot" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- STEP 1 - Robot footprint -->
+  <link name="base_footprint"></link>
+
+  <!-- Reusable inertia macro for a box -->
+  <xacro:macro name="box_inertia" params="m l w h">
+    <inertia ixx="${(m*(w*w+h*h))/12}" ixy="0" ixz="0"
+             iyy="${(m*(l*l+h*h))/12}" iyz="0"
+             izz="${(m*(l*l+w*w))/12}"
+    />
+  </xacro:macro>
+
+  <!-- Reusable inertia macro for a cylinder (wheel) -->
+  <xacro:macro name="cylinder_inertia" params="m r h">
+    <inertia ixx="${(m*(3*r*r+h*h))/12}" ixy="0" ixz="0"
+             iyy="${(m*(3*r*r+h*h))/12}" iyz="0"
+             izz="${(m*r*r)/2}"
+    />
+  </xacro:macro>
+
+  <!-- STEP 2 - Robot chassis = base_link -->
+  <joint name="base_footprint_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="base_footprint"/>
+    <child link="base_link" />
+  </joint>
+
+  <link name='base_link'>
+    <pose>0 0 0.1 0 0 0</pose>
+
+    <inertial>
+      <mass value="15.0"/>
+      <origin xyz="0.0 0 0" rpy="0 0 0"/>
+      <xacro:box_inertia m="15.0" l="0.4" w="0.2" h="0.1"/>
+    </inertial>
+
+    <collision name='collision'>
+      <origin xyz="0 0 0" rpy="0 0 0"/> 
+      <geometry>
+        <box size=".4 .2 .1"/>
+      </geometry>
+    </collision>
+
+    <visual name='base_link_visual'>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size=".4 .2 .1"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <!-- STEP 3 - Wheel macro: reusable wheel definition -->
+  <xacro:macro name="wheel" params="prefix y_pos">
+    <joint type="continuous" name="${prefix}_wheel_joint">
+      <origin xyz="0 ${y_pos} 0" rpy="0 0 0"/>
+      <child link="${prefix}_wheel"/>
+      <parent link="base_link"/>
+      <axis xyz="0 1 0" rpy="0 0 0"/>
+      <limit effort="100" velocity="10"/>
+      <dynamics damping="1.0" friction="1.0"/>
+    </joint>
+
+    <link name='${prefix}_wheel'>
+      <inertial>
+        <mass value="5.0"/>
+        <origin xyz="0 0 0" rpy="0 1.5707 1.5707"/>
+        <xacro:cylinder_inertia m="5.0" r="0.1" h="0.05"/>
+      </inertial>
+
+      <collision>
+        <origin xyz="0 0 0" rpy="0 1.5707 1.5707"/> 
+        <geometry>
+          <cylinder radius=".1" length=".05"/>
+        </geometry>
+      </collision>
+
+      <visual name='${prefix}_wheel_visual'>
+        <origin xyz="0 0 0" rpy="0 1.5707 1.5707"/>
+        <geometry>
+          <cylinder radius=".1" length=".05"/>
+        </geometry>
+      </visual>
+    </link>
+  </xacro:macro>
+
+  <!-- STEP 4 - Use the macro to create both wheels -->
+  <xacro:wheel prefix="left" y_pos="0.15"/>
+  <xacro:wheel prefix="right" y_pos="-0.15"/>
+
+</robot>
+```
+## Now to view it , we will first use the Rviz tool 
+
+#### Step 1 — Install required URDF packages
+```bash
+sudo apt update
+sudo apt install ros-jazzy-urdf ros-jazzy-urdf-tutorial ros-jazzy-urdf-launch -y
+```
+#### Step 2 — Create the launch folder and navigate to it
+```bash
+mkdir -p ~/sor_ws/src/sor-ros-session1/erc_sor_ros_session1/launch
+cd ~/sor_ws/src/sor-ros-session1/erc_sor_ros_session1/launch
+```
+#### Step 3 — Open Codium in this folder
+```bash
+codium .
+```
+#### Step 4 — Create the file inside Codium
+
+In the Codium sidebar: right-click → New File → name it check_urdf.launch.py → it opens blank, ready to type/paste.
+
+#### Step 5 — Paste this content
+```bash
+pythonimport os
+from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch_ros.substitutions import FindPackageShare
+
+
+def generate_launch_description():
+    
+    pkg_erc_sor_ros_session1 = FindPackageShare('erc_sor_ros_session1')
+    default_rviz_config_path = PathJoinSubstitution([pkg_erc_sor_ros_session1, 'rviz', 'urdf.rviz'])
+
+    # Show joint state publisher GUI for joints
+    gui_arg = DeclareLaunchArgument(name='gui', default_value='true', choices=['true', 'false'],
+                                    description='Flag to enable joint_state_publisher_gui')
+    
+    # RViz config file path
+    rviz_arg = DeclareLaunchArgument(name='rvizconfig', default_value=default_rviz_config_path,
+                                    description='Absolute path to rviz config file')
+    
+    # URDF/xacro model path within the package
+    model_arg = DeclareLaunchArgument(
+        'model', default_value='my_robot.xacro',
+        description='Name of the URDF/xacro description to load'
+    )
+
+    # Use built-in ROS2 URDF launch package with our own arguments
+    urdf = IncludeLaunchDescription(
+        PathJoinSubstitution([FindPackageShare('urdf_launch'), 'launch', 'display.launch.py']),
+        launch_arguments={
+            'urdf_package': 'erc_sor_ros_session1',
+            'urdf_package_path': PathJoinSubstitution(['urdf', LaunchConfiguration('model')]),
+            'rviz_config': LaunchConfiguration('rvizconfig'),
+            'jsp_gui': LaunchConfiguration('gui')}.items()
+    )
+
+    launchDescriptionObject = LaunchDescription()
+
+    launchDescriptionObject.add_action(gui_arg)
+    launchDescriptionObject.add_action(rviz_arg)
+    launchDescriptionObject.add_action(model_arg)
+    launchDescriptionObject.add_action(urdf)
+
+    return launchDescriptionObject
+
+```
+CTRL + S to save 
+
+#### Step 6 — Build and launch
+```bash
+cd ~/sor_ws && colcon build --packages-select erc_sor_ros_session1 && source install/setup.bash
+ros2 launch erc_sor_ros_session1 check_urdf.launch.py
+```
+RViz opens, your robot (base + two wheels) appears, and a joint_state_publisher GUI lets you slide the wheel joints live.
+
+<img width="2032" height="1127" alt="rviz-2" src="https://github.com/user-attachments/assets/2eeaef4c-bbc3-4c7f-92e8-814f8722e6db" />
