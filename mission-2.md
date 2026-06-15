@@ -591,7 +591,192 @@ cd ~/sor_ws && colcon build --packages-select erc_sor_ros_session1 && source ins
 Step 5 — Launch
 ```bash
 ros2 launch erc_sor_ros_session1 spawn_robot.launch.py
-Gazebo opens with the world, robot spawns at z=0.5 and drops onto the ground, RViz opens alongside showing the model with a joint_state_publisher_gui.
 ```
+Gazebo opens with the world, robot spawns at z=0.5 and drops onto the ground, RViz opens alongside showing the model with a joint_state_publisher_gui.
+
 Step 6 — Fix the RViz fixed frame
 In RViz, change the Fixed Frame dropdown (top left, Global Options) from base_link to base_footprint — odometry isn't published yet so this avoids a TF error.
+
+## Loading Gazebo in URDF
+
+Step 1 — Make sure world.sdf exists
+```bash
+ls ~/sor_ws/src/sor-ros-session1/erc_sor_ros_session1/worlds/
+```
+world.sdf should exist
+
+Step 2 — Navigate to launch folder and open Codium
+```bash
+cd ~/sor_ws/src/sor-ros-session1/erc_sor_ros_session1/launch
+codium .
+```
+Step 3 — Create world.launch.py
+Right-click sidebar → New File → name it world.launch.py → paste:
+```bash
+pythonimport os
+from ament_index_python.packages import get_package_share_directory
+from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, TextSubstitution
+
+
+def generate_launch_description():
+
+    world_arg = DeclareLaunchArgument(
+        'world', default_value='world.sdf',
+        description='Name of the Gazebo world file to load'
+    )
+
+    pkg_erc_sor_ros_session1 = get_package_share_directory('erc_sor_ros_session1')
+    pkg_ros_gz_sim = get_package_share_directory('ros_gz_sim')
+
+    gazebo_models_path = os.path.expanduser("~/gazebo_models")
+    os.environ["GZ_SIM_RESOURCE_PATH"] += os.pathsep + gazebo_models_path
+
+    gazebo_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(pkg_ros_gz_sim, 'launch', 'gz_sim.launch.py'),
+        ),
+        launch_arguments={'gz_args': [PathJoinSubstitution([
+            pkg_erc_sor_ros_session1,
+            'worlds',
+            LaunchConfiguration('world')
+        ]),
+        TextSubstitution(text=' -r -v -v1')],
+        'on_exit_shutdown': 'true'}.items()
+    )
+
+    launchDescriptionObject = LaunchDescription()
+
+    launchDescriptionObject.add_action(world_arg)
+    launchDescriptionObject.add_action(gazebo_launch)
+
+    return launchDescriptionObject
+```
+Ctrl+S to save.
+
+Step 4 — Create spawn_robot.launch.py
+Right-click sidebar → New File → name it spawn_robot.launch.py → paste:
+```bash
+pythonimport os
+from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.conditions import IfCondition
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, Command
+from launch_ros.actions import Node
+from ament_index_python.packages import get_package_share_directory
+
+def generate_launch_description():
+
+    pkg_erc_sor_ros_session1 = get_package_share_directory('erc_sor_ros_session1')
+
+    gazebo_models_path, ignore_last_dir = os.path.split(pkg_erc_sor_ros_session1)
+    os.environ["GZ_SIM_RESOURCE_PATH"] += os.pathsep + gazebo_models_path
+
+    rviz_launch_arg = DeclareLaunchArgument(
+        'rviz', default_value='true',
+        description='Open RViz.'
+    )
+
+    world_arg = DeclareLaunchArgument(
+        'world', default_value='world.sdf',
+        description='Name of the Gazebo world file to load'
+    )
+
+    model_arg = DeclareLaunchArgument(
+        'model', default_value='my_robot.xacro',
+        description='Name of the URDF description to load'
+    )
+
+    urdf_file_path = PathJoinSubstitution([
+        pkg_erc_sor_ros_session1,
+        "urdf",
+        LaunchConfiguration('model')
+    ])
+
+    world_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(pkg_erc_sor_ros_session1, 'launch', 'world.launch.py'),
+        ),
+        launch_arguments={
+        'world': LaunchConfiguration('world'),
+        }.items()
+    )
+
+    rviz_node = Node(
+        package='rviz2',
+        executable='rviz2',
+        arguments=['-d', os.path.join(pkg_erc_sor_ros_session1, 'rviz', 'rviz.rviz')],
+        condition=IfCondition(LaunchConfiguration('rviz')),
+        parameters=[
+            {'use_sim_time': True},
+        ]
+    )
+
+    spawn_urdf_node = Node(
+        package="ros_gz_sim",
+        executable="create",
+        arguments=[
+            "-name", "my_robot",
+            "-topic", "robot_description",
+            "-x", "0.0", "-y", "0.0", "-z", "0.5", "-Y", "0.0"
+        ],
+        output="screen",
+        parameters=[
+            {'use_sim_time': True},
+        ]
+    )
+
+    robot_state_publisher_node = Node(
+        package='robot_state_publisher',
+        executable='robot_state_publisher',
+        name='robot_state_publisher',
+        output='screen',
+        parameters=[
+            {'robot_description': Command(['xacro', ' ', urdf_file_path]),
+             'use_sim_time': True},
+        ],
+        remappings=[
+            ('/tf', 'tf'),
+            ('/tf_static', 'tf_static')
+        ]
+    )
+
+    joint_state_publisher_gui_node = Node(
+        package='joint_state_publisher_gui',
+        executable='joint_state_publisher_gui',
+    )
+
+    launchDescriptionObject = LaunchDescription()
+
+    launchDescriptionObject.add_action(rviz_launch_arg)
+    launchDescriptionObject.add_action(world_arg)
+    launchDescriptionObject.add_action(model_arg)
+    launchDescriptionObject.add_action(world_launch)
+    launchDescriptionObject.add_action(rviz_node)
+    launchDescriptionObject.add_action(spawn_urdf_node)
+    launchDescriptionObject.add_action(robot_state_publisher_node)
+    launchDescriptionObject.add_action(joint_state_publisher_gui_node)
+
+    return launchDescriptionObject
+```
+Ctrl+S to save.
+
+Step 5 — Rebuild
+```bash
+cd ~/sor_ws && colcon build --packages-select erc_sor_ros_session1 && source install/setup.bash
+```
+Step 6 — Launch
+```bash
+ros2 launch erc_sor_ros_session1 spawn_robot.launch.py
+```
+Gazebo and RViz both open, robot spawns and drops onto the ground in the world.
+
+Step 7 — Fix RViz fixed frame
+In RViz: Global Options → Fixed Frame → change base_link to base_footprint.
+<img width="2032" height="1124" alt="spawn" src="https://github.com/user-attachments/assets/5d18614a-404e-48e1-8ba1-a79884260169" />
+
+
+## We 
