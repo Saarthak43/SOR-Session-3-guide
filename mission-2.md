@@ -301,7 +301,7 @@ In the Codium sidebar: right-click → New File → name it check_urdf.launch.py
 
 #### Step 5 — Paste this content
 ```bash
-pythonimport os
+import os
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
@@ -832,4 +832,4 @@ We have a bot inside gazebo which can use the the teleop key from plugin browser
 
 This repo didnt account for the carter wheels and creation of a teleop node - which helps us drive the bot from another terminal 
 
-solve these two issues and screen record the video clearly showing the carter wheels and driving it arounf the teleop node
+solve these two issues and screen record the video clearly showing the carter wheels and driving it around the teleop node
