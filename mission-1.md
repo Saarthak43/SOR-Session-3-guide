@@ -734,11 +734,10 @@ def main(args=None):
         node.destroy_node()
         if rclpy.ok():
             rclpy.shutdown()
-```
 
 if __name__ == '__main__':
     main()
-
+```
 ### 6.3 Create teleop node
 
 Open the package in Codium:
@@ -771,7 +770,6 @@ KEY_MAP = {
 def get_key():
     fd = sys.stdin.fileno()
     old = termios.tcgetattr(fd)
-
     try:
         tty.setraw(fd)
         return sys.stdin.read(1)
@@ -783,35 +781,28 @@ class TeleopNode(Node):
     def __init__(self):
         super().__init__('teleop_node')
         self.publisher = self.create_publisher(Twist, '/cmd_vel', 10)
-
         print('\nW/S: drive | A/D: turn | Q: quit\n')
 
     def run(self):
         while rclpy.ok():
             key = get_key().lower()
             msg = Twist()
-
             if key == 'q':
                 break
-
             if key in KEY_MAP:
                 msg.linear.x, msg.angular.z = KEY_MAP[key]
-
             self.publisher.publish(msg)
 
 
 def main(args=None):
     rclpy.init(args=args)
-
     node = TeleopNode()
-
     try:
         node.run()
     except KeyboardInterrupt:
         pass
     finally:
         node.destroy_node()
-
         if rclpy.ok():
             rclpy.shutdown()
 
