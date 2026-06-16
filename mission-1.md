@@ -541,6 +541,8 @@ Q = quit
 ```
 
 ---
+Again in another terminal introspect the node !!
+
 
 ## Part 6 — Topic
 
