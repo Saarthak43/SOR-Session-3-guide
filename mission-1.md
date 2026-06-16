@@ -1155,12 +1155,13 @@ if __name__ == '__main__':
     main()
 ```
 
-Add to `setup.py`:
+Add to `setup.py` as another entry point :
 
 ```python
 'reset_client = ros2_robot_sim.reset_client:main',
 ```
-
+Open the teleopkey and robot_sim node to test the reset node 
+then in third terminal :
 Build:
 
 ```bash
