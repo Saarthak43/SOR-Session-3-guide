@@ -573,34 +573,171 @@ linear.x   # forward/backward
 angular.z  # rotation
 ```
 
-### 6.2 Add subscriber code to `robot_sim.py`
+### 6.2 Add subscriber code to `robot_sim.py` ( REPLACE THE CURRENT CODE WITH THIS )
+```bash
+import math
+import threading
 
-Add this import:
-
-```python
+import pygame
+import rclpy
+from rclpy.node import Node
 from geometry_msgs.msg import Twist
+
+WIDTH, HEIGHT = 800, 600
+FPS = 60
+BOT_RADIUS = 30
+
+SPEED = 150.0
+TURN_SPEED = 2.5
+
+GRID_SIZE = 40
+GRID_COLOR = (28, 28, 36)
+BG_COLOR = (18, 18, 24)
+
+
+class RobotSimNode(Node):
+    def __init__(self):
+        super().__init__('robot_sim')
+        self.get_logger().info('robot_sim node started')
+
+        self._lock = threading.Lock()
+
+        self.x = float(WIDTH / 2)
+        self.y = float(HEIGHT / 2)
+        self.ang = -math.pi / 2
+
+        self.lin_vel = 0.0
+        self.ang_vel = 0.0
+
+        self._running = True
+
+        self.create_subscription(Twist, '/cmd_vel', self._cmd_vel_cb, 10)
+        threading.Thread(target=self._pygame_loop, daemon=True).start()
+
+    def _cmd_vel_cb(self, msg):
+        with self._lock:
+            self.lin_vel = msg.linear.x * SPEED
+            self.ang_vel = msg.angular.z * TURN_SPEED
+
+    def _draw_grid(self, screen):
+        for x in range(0, WIDTH, GRID_SIZE):
+            pygame.draw.line(screen, GRID_COLOR, (x, 0), (x, HEIGHT), 1)
+        for y in range(0, HEIGHT, GRID_SIZE):
+            pygame.draw.line(screen, GRID_COLOR, (0, y), (WIDTH, y), 1)
+
+    def _draw_hud(self, screen, font, x, y, ang, lin_vel, ang_vel):
+        head_deg = math.degrees(ang)
+        ang_vel_deg = math.degrees(ang_vel)
+
+        lines = [
+            ('ROS2 Robot Sim', (60, 200, 255)),
+            ('node: /robot_sim', (180, 180, 180)),
+            (f'pos x: {int(x)}  y: {int(y)}', (220, 220, 220)),
+            (f'head {head_deg:.1f} deg', (220, 220, 220)),
+            (f'v:{lin_vel:+.0f}  w:{ang_vel_deg:+.1f} deg/s', (220, 220, 220)),
+        ]
+
+        panel_x, panel_y = 10, 10
+        padding = 6
+        line_h = font.get_linesize() + 2
+        panel_w = 160
+        panel_h = len(lines) * line_h + padding * 2
+
+        surf = pygame.Surface((panel_w, panel_h), pygame.SRCALPHA)
+        surf.fill((0, 0, 0, 140))
+        screen.blit(surf, (panel_x, panel_y))
+
+        for i, (text, color) in enumerate(lines):
+            rendered = font.render(text, True, color)
+            screen.blit(rendered, (panel_x + padding, panel_y + padding + i * line_h))
+
+    def _draw_toolbar(self, screen, font):
+        toolbar_h = 24
+        surf = pygame.Surface((WIDTH, toolbar_h), pygame.SRCALPHA)
+        surf.fill((0, 0, 0, 160))
+        screen.blit(surf, (0, HEIGHT - toolbar_h))
+
+        text = '    W/S: drive      A/D: turn      ESC: quit'
+        rendered = font.render(text, True, (180, 180, 180))
+        rect = rendered.get_rect(center=(WIDTH // 2, HEIGHT - toolbar_h // 2))
+        screen.blit(rendered, rect)
+
+    def _pygame_loop(self):
+        pygame.display.init()
+        pygame.font.init()
+
+        screen = pygame.display.set_mode((WIDTH, HEIGHT))
+        pygame.display.set_caption('ROS2 Robot Sim — /robot_sim node')
+        clock = pygame.time.Clock()
+
+        font = pygame.font.SysFont('monospace', 13)
+
+        while self._running:
+            dt = clock.tick(FPS) / 1000.0
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self._running = False
+                    rclpy.shutdown()
+                    return
+
+            if pygame.key.get_pressed()[pygame.K_ESCAPE]:
+                self._running = False
+                rclpy.shutdown()
+                return
+
+            with self._lock:
+                self.x += self.lin_vel * math.cos(self.ang) * dt
+                self.y += self.lin_vel * math.sin(self.ang) * dt
+                self.ang += self.ang_vel * dt
+
+                self.x = self.x % WIDTH
+                self.y = self.y % HEIGHT
+
+                x = int(self.x)
+                y = int(self.y)
+                draw_ang = self.ang
+                lin_vel = self.lin_vel
+                ang_vel = self.ang_vel
+
+            screen.fill(BG_COLOR)
+            self._draw_grid(screen)
+
+            pygame.draw.circle(screen, (20, 60, 100), (x, y), BOT_RADIUS + 4)
+            pygame.draw.circle(screen, (60, 180, 255), (x, y), BOT_RADIUS)
+
+            tip_x = int(x + math.cos(draw_ang) * BOT_RADIUS)
+            tip_y = int(y + math.sin(draw_ang) * BOT_RADIUS)
+            pygame.draw.line(screen, (255, 255, 255), (x, y), (tip_x, tip_y), 3)
+
+            self._draw_hud(screen, font, x, y, draw_ang, lin_vel, ang_vel)
+            self._draw_toolbar(screen, font)
+
+            pygame.display.flip()
+
+        pygame.quit()
+
+    def destroy_node(self):
+        self._running = False
+        super().destroy_node()
+
+
+def main(args=None):
+    rclpy.init(args=args)
+    node = RobotSimNode()
+
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        node.destroy_node()
+        if rclpy.ok():
+            rclpy.shutdown()
 ```
 
-Inside `__init__`, add:
-
-```python
-self.create_subscription(Twist, '/cmd_vel', self._cmd_vel_cb, 10)
-```
-
-Add this function inside the class:
-
-```python
-def _cmd_vel_cb(self, msg):
-    with self._lock:
-        self.lin_vel = msg.linear.x * SPEED
-        self.ang_vel = msg.angular.z * TURN_SPEED
-```
-
-Also remove/comment the keyboard thread:
-
-```python
-# threading.Thread(target=self._keyboard_loop, daemon=True).start()
-```
+if __name__ == '__main__':
+    main()
 
 ### 6.3 Create teleop node
 
