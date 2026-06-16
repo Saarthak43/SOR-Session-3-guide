@@ -1108,7 +1108,7 @@ ros2 service type /reset
 ros2 service call /reset std_srvs/srv/Empty "{}"
 ```
 
-### 7.3 Service client node
+### 7.3 Test as a separate node
 
 Open the package in Codium:
 
