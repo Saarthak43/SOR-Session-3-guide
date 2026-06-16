@@ -877,20 +877,20 @@ We will add:
 
 ### 7.1 Add service server to `robot_sim.py`
 
-Import:
+Add this import at the top with the others inside robot_sim.py
 
 ```python
 from std_srvs.srv import Empty
 ```
 
 Inside `__init__`:
-
+Add this line inside `__init__ `after `self.create_subscription` line:
 ```python
 self.create_service(Empty, '/reset', self._reset_cb)
 ```
 
-Inside the class:
-
+Inside the class 
+Add this method inside the class after `_cmd_vel_cb`:
 ```python
 def _reset_cb(self, req, res):
     with self._lock:
@@ -903,6 +903,7 @@ def _reset_cb(self, req, res):
     self.get_logger().info('Robot reset')
     return res
 ```
+intendation should be exactly like this 
 
 ### 7.2 Test from CLI
 
@@ -912,7 +913,11 @@ colcon build --packages-select ros2_robot_sim
 source install/setup.bash
 ros2 run ros2_robot_sim robot_sim
 ```
-
+Also move your bot using teleop key in another terminal 
+```bash
+source ~/ros2_ws/install/setup.bash
+ros2 run ros2_robot_sim teleop
+```
 Another terminal:
 
 ```bash
