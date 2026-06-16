@@ -196,6 +196,11 @@ Create/replace `package.xml` and paste this code:
 
   <maintainer email="student@example.com">student</maintainer>
   <license>Apache-2.0</license>
+  
+  <test_depend>ament_copyright</test_depend>
+  <test_depend>ament_flake8</test_depend>
+  <test_depend>ament_pep257</test_depend>
+  <test_depend>python3-pytest</test_depend>
 
   <depend>rclpy</depend>
   <depend>geometry_msgs</depend>
@@ -266,18 +271,24 @@ package_name = 'ros2_robot_sim'
 
 setup(
     name=package_name,
-    version='0.0.1',
+    version='0.0.0',
     packages=find_packages(exclude=['test']),
     data_files=[
-        ('share/ament_index/resource_index/packages', ['resource/' + package_name]),
+        ('share/ament_index/resource_index/packages',
+            ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
-    maintainer='student',
-    maintainer_email='student@example.com',
-    description='ROS 2 garbage collection bot simulation',
+    maintainer='ubuntu',
+    maintainer_email='1goelkeshav0@gmail.com',
+    description='TODO: Package description',
     license='Apache-2.0',
+    extras_require={
+        'test': [
+            'pytest',
+        ],
+    },
     entry_points={
         'console_scripts': [
             'robot_sim = ros2_robot_sim.robot_sim:main',
@@ -294,6 +305,7 @@ colcon build --packages-select ros2_robot_sim
 source install/setup.bash
 ros2 run ros2_robot_sim robot_sim
 ```
+### This wont open up any window for now , it has just connected the ros to our simulation by creating a node 
 
 ### 4.5 Inspect only the node
 
@@ -326,9 +338,6 @@ Create/replace `ros2_robot_sim/robot_sim.py` and paste this code:
 ```python
 import math
 import threading
-import sys
-import tty
-import termios
 
 import pygame
 import rclpy
@@ -342,12 +351,9 @@ BOT_RADIUS = 30
 SPEED = 150.0
 TURN_SPEED = 2.5
 
-KEY_MAP = {
-    'w': (1.0, 0.0),
-    's': (-1.0, 0.0),
-    'a': (0.0, -1.0),
-    'd': (0.0, 1.0),
-}
+GRID_SIZE = 40
+GRID_COLOR = (28, 28, 36)
+BG_COLOR = (18, 18, 24)
 
 
 class RobotSimNode(Node):
@@ -367,44 +373,70 @@ class RobotSimNode(Node):
         self._running = True
 
         threading.Thread(target=self._pygame_loop, daemon=True).start()
-        threading.Thread(target=self._keyboard_loop, daemon=True).start()
 
-    def _keyboard_loop(self):
-        fd = sys.stdin.fileno()
-        old = termios.tcgetattr(fd)
+    def _draw_grid(self, screen):
+        for x in range(0, WIDTH, GRID_SIZE):
+            pygame.draw.line(screen, GRID_COLOR, (x, 0), (x, HEIGHT), 1)
+        for y in range(0, HEIGHT, GRID_SIZE):
+            pygame.draw.line(screen, GRID_COLOR, (0, y), (WIDTH, y), 1)
 
-        try:
-            tty.setraw(fd)
+    def _draw_hud(self, screen, font, x, y, ang, lin_vel, ang_vel):
+        head_deg = math.degrees(ang)
+        ang_vel_deg = math.degrees(ang_vel)
 
-            while self._running and rclpy.ok():
-                key = sys.stdin.read(1).lower()
+        lines = [
+            ('ROS2 Robot Sim', (60, 200, 255)),
+            (f'node: /robot_sim', (180, 180, 180)),
+            (f'pos x: {int(x)}  y: {int(y)}', (220, 220, 220)),
+            (f'head {head_deg:.1f} deg', (220, 220, 220)),
+            (f'v:{lin_vel:+.0f}  w:{ang_vel_deg:+.1f} deg/s', (220, 220, 220)),
+        ]
 
-                with self._lock:
-                    if key == 'q':
-                        self._running = False
-                        rclpy.shutdown()
-                        break
+        panel_x, panel_y = 10, 10
+        padding = 6
+        line_h = font.get_linesize() + 2
+        panel_w = 160
+        panel_h = len(lines) * line_h + padding * 2
 
-                    if key in KEY_MAP:
-                        linear, angular = KEY_MAP[key]
-                        self.lin_vel = linear * SPEED
-                        self.ang_vel = angular * TURN_SPEED
-                    else:
-                        self.lin_vel = 0.0
-                        self.ang_vel = 0.0
+        surf = pygame.Surface((panel_w, panel_h), pygame.SRCALPHA)
+        surf.fill((0, 0, 0, 140))
+        screen.blit(surf, (panel_x, panel_y))
 
-        finally:
-            termios.tcsetattr(fd, termios.TCSADRAIN, old)
+        for i, (text, color) in enumerate(lines):
+            rendered = font.render(text, True, color)
+            screen.blit(rendered, (panel_x + padding, panel_y + padding + i * line_h))
+
+    def _draw_toolbar(self, screen, font):
+        toolbar_h = 24
+        surf = pygame.Surface((WIDTH, toolbar_h), pygame.SRCALPHA)
+        surf.fill((0, 0, 0, 160))
+        screen.blit(surf, (0, HEIGHT - toolbar_h))
+
+        items = [
+            ('W/S: drive', (200, 200, 200)),
+            ('  A/D: turn', (200, 200, 200)),
+            ('  ESC: quit', (200, 200, 200)),
+        ]
+        text = '    W/S: drive      A/D: turn      ESC: quit'
+        rendered = font.render(text, True, (180, 180, 180))
+        rect = rendered.get_rect(center=(WIDTH // 2, HEIGHT - toolbar_h // 2))
+        screen.blit(rendered, rect)
 
     def _pygame_loop(self):
-        pygame.init()
+        pygame.display.init()
+        pygame.font.init()
 
         screen = pygame.display.set_mode((WIDTH, HEIGHT))
-        pygame.display.set_caption('ROS2 Robot Sim')
+        pygame.display.set_caption('ROS2 Robot Sim — /robot_sim node')
         clock = pygame.time.Clock()
+
+        font = pygame.font.SysFont('monospace', 13)
 
         while self._running:
             dt = clock.tick(FPS) / 1000.0
+
+            lin = 0.0
+            ang = 0.0
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -412,7 +444,27 @@ class RobotSimNode(Node):
                     rclpy.shutdown()
                     return
 
+            keys = pygame.key.get_pressed()
+
+            if keys[pygame.K_w]:
+                lin = 1.0
+            elif keys[pygame.K_s]:
+                lin = -1.0
+
+            if keys[pygame.K_a]:
+                ang = -1.0
+            elif keys[pygame.K_d]:
+                ang = 1.0
+
+            if keys[pygame.K_ESCAPE]:
+                self._running = False
+                rclpy.shutdown()
+                return
+
             with self._lock:
+                self.lin_vel = lin * SPEED
+                self.ang_vel = ang * TURN_SPEED
+
                 self.x += self.lin_vel * math.cos(self.ang) * dt
                 self.y += self.lin_vel * math.sin(self.ang) * dt
                 self.ang += self.ang_vel * dt
@@ -422,17 +474,25 @@ class RobotSimNode(Node):
 
                 x = int(self.x)
                 y = int(self.y)
-                ang = self.ang
+                draw_ang = self.ang
+                lin_vel = self.lin_vel
+                ang_vel = self.ang_vel
 
-            screen.fill((18, 18, 24))
+            # Draw
+            screen.fill(BG_COLOR)
+            self._draw_grid(screen)
 
-            pygame.draw.circle(screen, (30, 90, 140), (x, y), BOT_RADIUS + 2)
+            # Bot outer ring
+            pygame.draw.circle(screen, (20, 60, 100), (x, y), BOT_RADIUS + 4)
+            # Bot body
             pygame.draw.circle(screen, (60, 180, 255), (x, y), BOT_RADIUS)
-
-            tip_x = int(x + math.cos(ang) * BOT_RADIUS)
-            tip_y = int(y + math.sin(ang) * BOT_RADIUS)
-
+            # Direction line
+            tip_x = int(x + math.cos(draw_ang) * BOT_RADIUS)
+            tip_y = int(y + math.sin(draw_ang) * BOT_RADIUS)
             pygame.draw.line(screen, (255, 255, 255), (x, y), (tip_x, tip_y), 3)
+
+            self._draw_hud(screen, font, x, y, draw_ang, lin_vel, ang_vel)
+            self._draw_toolbar(screen, font)
 
             pygame.display.flip()
 
@@ -453,7 +513,6 @@ def main(args=None):
         pass
     finally:
         node.destroy_node()
-
         if rclpy.ok():
             rclpy.shutdown()
 
