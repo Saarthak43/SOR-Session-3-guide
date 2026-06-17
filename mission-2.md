@@ -290,9 +290,8 @@ Adding base link , wheels , corresponding joints and inertia to our URDF file , 
 sudo apt update
 sudo apt install ros-jazzy-urdf ros-jazzy-urdf-tutorial ros-jazzy-urdf-launch -y
 ```
-#### Step 2 — Create the launch folder and navigate to it
+#### Step 2 — Navigate to the launch folder 
 ```bash
-mkdir -p ~/sor_ws/src/sor-ros-session1/erc_sor_ros_session1/launch
 cd ~/sor_ws/src/sor-ros-session1/erc_sor_ros_session1/launch
 ```
 #### Step 3 — Open Codium in this folder
