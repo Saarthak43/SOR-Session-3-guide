@@ -833,6 +833,6 @@ We see that odometry is still not published for RViz, but at least in Gazebo we 
 We have a bot inside gazebo which can use the the teleop key from plugin browser which helps you drive around .
 ### YOUR TASK?
 
-This repo didnt account for the carter wheels and creation of a teleop node - which helps us drive the bot from another terminal 
+This repo didnt account for the caster wheels and creation of a teleop node - which helps us drive the bot from another terminal 
 
 solve these two issues and screen record the video clearly showing the carter wheels and driving it around the teleop node
