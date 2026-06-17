@@ -161,11 +161,7 @@ install(
 
 Launch only the world first:
 navigate to the worlds folder ( find it using cd and ls commands in succession ) 
-after reaching worlds check if world file is there in or not 
 
-if you can spot world then that means you correctly exported the zip file 
-
-and if not , likely you didnt extract it inside the home of your ubuntu VM
 ```bash
 gz sim world.sdf
 ```
@@ -189,6 +185,9 @@ URDF means **Universal Robot Description Format**. It is an XML format used to d
 
 Adding base link , wheels , corresponding joints and inertia to our URDF file , refer to the slides to see exactly how to navigate and update the .xacro folder 
  ( extension should be .xacro ) 
+
+ inside urdf create my_robot.xacro
+ and paste
 ```bash
 <?xml version='1.0'?>
 
