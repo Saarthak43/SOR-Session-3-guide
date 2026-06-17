@@ -160,9 +160,14 @@ install(
 ## Opening the Pre-Built World
 
 Launch only the world first:
+navigate to the worlds folder ( find it using cd and ls commands in succession ) 
+after reaching worlds check if world file is there in or not 
 
+if you can spot world then that means you correctly exported the zip file 
+
+and if not , likely you didnt extract it inside the home of your ubuntu VM
 ```bash
-ros2 launch erc_sor_ros_session1 world.launch.py
+gz sim world.sdf
 ```
 
 <img width="2031" height="1122" alt="gazebo-3" src="https://github.com/user-attachments/assets/d773c951-6e10-4658-aa51-32624c2b829a" />
