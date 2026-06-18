@@ -416,7 +416,7 @@ Step 2 — Create new file spawn_robot.launch.py
 
 Right-click sidebar → New File → name it spawn_robot.launch.py → paste this:
 ```bash
-pythonimport os
+import os
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.conditions import IfCondition
@@ -523,7 +523,7 @@ Ctrl+S to save.
 Step 3 — Create world.launch.py too (required by spawn_robot.launch.py)
 This file is referenced inside spawn_robot.launch.py but you haven't created it yet. In the same launch folder, right-click → New File → name it world.launch.py → paste:
 ```bash
-pythonimport os
+import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
@@ -594,7 +594,7 @@ codium .
 Step 3 — Create world.launch.py
 Right-click sidebar → New File → name it world.launch.py → paste:
 ```bash
-pythonimport os
+import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
@@ -640,7 +640,7 @@ Ctrl+S to save.
 Step 4 — Create spawn_robot.launch.py
 Right-click sidebar → New File → name it spawn_robot.launch.py → paste:
 ```bash
-pythonimport os
+import os
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.conditions import IfCondition
