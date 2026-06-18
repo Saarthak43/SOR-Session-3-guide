@@ -822,7 +822,7 @@ Let's include this new file in our robot's URDF. In the same way how we included
   ```
 Rebuild the workspace and let's try it:
  ```bash
-ros2 launch bme_gazebo_basics spawn_robot.launch.py
+ros2 launch erc_sor_ros_session1 spawn_robot.launch.py
   ```
 We see that odometry is still not published for RViz, but at least in Gazebo we can already drive our robot with the teleop plugin:
 
