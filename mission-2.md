@@ -836,3 +836,37 @@ We have a bot inside gazebo which can use the the teleop key from plugin browser
 This repo didnt account for the caster wheels and creation of a teleop node - which helps us drive the bot from another terminal 
 
 solve these two issues and screen record the video clearly showing the caster wheels and driving it around the teleop node
+
+## HINT for teleop node :
+
+Remember the session ? To actually use a teleop key from a different terminal , we first need to add a bridge between ROS and gazebo 
+for that we create a separate bridge node , let's name it " parameter_bridge " 
+
+We forward the following topics:
+
+/clock: The topic used for tracking simulation time or any custom time source.
+/cmd_vel: We'll control the simulated robot from this ROS topic.
+/odom: Gazebo's diff drive plugin provides this odometry topic for ROS consumers.
+/joint_states: Gazebo's other plugin provides the dynamic transformation of the wheel joints.
+/tf: Gazebo provides the real-time computation of the robot’s pose and the positions of its links, sensors, etc.
+
+```bash
+    # Node to bridge messages like /cmd_vel and /odom
+    gz_bridge_node = Node(
+        package="ros_gz_bridge",
+        executable="parameter_bridge",
+        arguments=[
+            "/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock",
+            "/cmd_vel@geometry_msgs/msg/Twist@gz.msgs.Twist",
+            "/odom@nav_msgs/msg/Odometry@gz.msgs.Odometry",
+            "/joint_states@sensor_msgs/msg/JointState@gz.msgs.Model",
+            "/tf@tf2_msgs/msg/TFMessage@gz.msgs.Pose_V"
+        ],
+        output="screen",
+        parameters=[
+            {'use_sim_time': True},
+        ]
+    )
+```
+
+Refer to slides for other steps .
