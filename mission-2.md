@@ -845,10 +845,15 @@ for that we create a separate bridge node , let's name it " parameter_bridge "
 We forward the following topics:
 
 /clock: The topic used for tracking simulation time or any custom time source.
+
 /cmd_vel: We'll control the simulated robot from this ROS topic.
+
 /odom: Gazebo's diff drive plugin provides this odometry topic for ROS consumers.
+
 /joint_states: Gazebo's other plugin provides the dynamic transformation of the wheel joints.
+
 /tf: Gazebo provides the real-time computation of the robot’s pose and the positions of its links, sensors, etc.
+
 
 ```bash
     # Node to bridge messages like /cmd_vel and /odom
